@@ -1,31 +1,21 @@
-name: Chroma-Hub-Docker-Farm
+name: Chroma-Hub-Final-Fix
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 */6 * * *'
 
 jobs:
-  android-farm:
+  check-system:
     runs-on: ubuntu-latest
     steps:
-      - name: 🚀 Launching Docker Android (No-GPU)
+      - name: 🚀 Start Clean Tunnel
         run: |
-          # รัน Android Emulator ผ่าน Docker (ตัวนี้เสถียรสุดบน GitHub)
-          docker run -d -p 6080:6080 -p 5554:5554 -p 5555:5555 \
-          --device /dev/kvm --name chroma-android \
-          budtmo/docker-android:emulator_11.0
-          
-          # ติดตั้ง tmate เพื่อเจาะท่อ
+          # ติดตั้งแค่ tmate เพื่อให้ Boss เข้าไปคุมเครื่องเอง
           sudo apt update && sudo apt install -y tmate
-          
-      - name: 🔗 Connect Tunnel & Discord Alert
-        run: |
           tmate -S /tmp/tmate.sock new-session -d
           tmate -S /tmp/tmate.sock wait tmate-ready
           SSH_LINK=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
           
           # ส่งลิงก์เข้า Discord
-          curl -H "Content-Type: application/json" -d "{\"content\": \"🚀 **[Chroma Hub]** ระบบ Docker Android พร้อมแล้ว BOSS!\n🔗 **SSH เพื่อดู Link Web:** \`$SSH_LINK\`\n🌐 **วิธีเข้า:** เข้าไปที่พอร์ต 6080 ใน Browser ครับ\"}" ${{ secrets.DISCORD_WEBHOOK }}
+          curl -H "Content-Type: application/json" -d "{\"content\": \"✅ **[Chroma Hub]** ล้างเครื่องสำเร็จ! \n🔗 **SSH:** \`$SSH_LINK\`\"}" ${{ secrets.DISCORD_WEBHOOK }}
           
-          # รันยาว 6 ชม.
+          # ปล่อยให้เครื่องรันรอ Boss 6 ชม.
           sleep 21600
