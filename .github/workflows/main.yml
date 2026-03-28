@@ -1,34 +1,31 @@
-name: Chroma-Hub-NonStop-24-7
+name: Chroma-Hub-Docker-Farm
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 */6 * * *'
 
 jobs:
-  farm:
+  android-farm:
     runs-on: ubuntu-latest
     steps:
-      - name: 🛠️ Setup System (Fix Error)
+      - name: 🚀 Launching Docker Android (No-GPU)
         run: |
-          sudo apt update
-          sudo apt install -y xfce4 xfce4-goodies tightvncserver tmate
+          # รัน Android Emulator ผ่าน Docker (ตัวนี้เสถียรสุดบน GitHub)
+          docker run -d -p 6080:6080 -p 5554:5554 -p 5555:5555 \
+          --device /dev/kvm --name chroma-android \
+          budtmo/docker-android:emulator_11.0
           
-          # ตั้งค่า VNC แบบรวบรัด
-          mkdir ~/.vnc
-          echo "${{ secrets.VNC_PASSWORD }}" | vncpasswd -f > ~/.vnc/passwd
-          chmod 600 ~/.vnc/passwd
+          # ติดตั้ง tmate เพื่อเจาะท่อ
+          sudo apt update && sudo apt install -y tmate
           
-          # เริ่ม VNC Server (รันในพื้นหลัง)
-          vncserver :1 -geometry 1024x768 -depth 16
-          
-      - name: 🚀 Connect Tunnel
+      - name: 🔗 Connect Tunnel & Discord Alert
         run: |
           tmate -S /tmp/tmate.sock new-session -d
           tmate -S /tmp/tmate.sock wait tmate-ready
           SSH_LINK=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
           
-          # ส่งลิงก์เข้า Discord ทันที
-          curl -H "Content-Type: application/json" -d "{\"content\": \"🚀 **[Chroma Hub]** เครื่องแก้ไขพร้อมแล้ว BOSS!\n🔗 **SSH:** \`$SSH_LINK\`\n🔑 **VNC Pass:** \`${{ secrets.VNC_PASSWORD }}\`\"}" ${{ secrets.DISCORD_WEBHOOK }}
+          # ส่งลิงก์เข้า Discord
+          curl -H "Content-Type: application/json" -d "{\"content\": \"🚀 **[Chroma Hub]** ระบบ Docker Android พร้อมแล้ว BOSS!\n🔗 **SSH เพื่อดู Link Web:** \`$SSH_LINK\`\n🌐 **วิธีเข้า:** เข้าไปที่พอร์ต 6080 ใน Browser ครับ\"}" ${{ secrets.DISCORD_WEBHOOK }}
           
-          # ป้องกันเครื่องหลับ (รัน 6 ชม.)
+          # รันยาว 6 ชม.
           sleep 21600
