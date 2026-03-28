@@ -2,36 +2,33 @@ name: Chroma-Hub-NonStop-24-7
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *' # รันอัตโนมัติทุก 6 ชม. (รวม 4 รอบต่อวัน)
+    - cron: '0 */6 * * *'
 
 jobs:
   farm:
     runs-on: ubuntu-latest
     steps:
-      - name: 🛠️ Install System
+      - name: 🛠️ Setup System (Fix Error)
         run: |
           sudo apt update
-          sudo apt install -y xfce4 xfce4-goodies tightvncserver tmate xdotool
-          curl https://repo.waydro.id | sudo bash
-          sudo apt install waydroid -y
-          sudo waydroid init -f
+          sudo apt install -y xfce4 xfce4-goodies tightvncserver tmate
+          
+          # ตั้งค่า VNC แบบรวบรัด
           mkdir ~/.vnc
           echo "${{ secrets.VNC_PASSWORD }}" | vncpasswd -f > ~/.vnc/passwd
           chmod 600 ~/.vnc/passwd
+          
+          # เริ่ม VNC Server (รันในพื้นหลัง)
           vncserver :1 -geometry 1024x768 -depth 16
-          sudo systemctl enable --now waydroid-container
-          waydroid session start &
-
+          
       - name: 🚀 Connect Tunnel
         run: |
           tmate -S /tmp/tmate.sock new-session -d
           tmate -S /tmp/tmate.sock wait tmate-ready
           SSH_LINK=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
-          curl -H "Content-Type: application/json" -d "{\"content\": \"🚀 **[Chroma Hub]** เครื่องฟาร์มพร้อมแล้ว BOSS!\n🔗 **SSH:** \`$SSH_LINK\`\n🔑 **VNC Pass:** \`${{ secrets.VNC_PASSWORD }}\`\"}" ${{ secrets.DISCORD_WEBHOOK }}
           
-          # Loop ป้องกันการตัดการเชื่อมต่อ (6 ชม.)
-          for i in {1..360}; do
-            export DISPLAY=:1
-            xdotool mousemove $((RANDOM%100)) $((RANDOM%100)) # ขยับเมาส์หลอกระบบ
-            sleep 60
-          done
+          # ส่งลิงก์เข้า Discord ทันที
+          curl -H "Content-Type: application/json" -d "{\"content\": \"🚀 **[Chroma Hub]** เครื่องแก้ไขพร้อมแล้ว BOSS!\n🔗 **SSH:** \`$SSH_LINK\`\n🔑 **VNC Pass:** \`${{ secrets.VNC_PASSWORD }}\`\"}" ${{ secrets.DISCORD_WEBHOOK }}
+          
+          # ป้องกันเครื่องหลับ (รัน 6 ชม.)
+          sleep 21600
